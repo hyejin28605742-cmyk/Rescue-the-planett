@@ -1,0 +1,715 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { Leaf, ShoppingBag, Camera, Star, Droplet, Sprout, Sparkles, X } from 'lucide-react';
+
+const BioSynthPlanet = () => {
+  const [points, setPoints] = useState(500);
+  const [ecoScore, setEcoScore] = useState(0);
+  const [showShop, setShowShop] = useState(false);
+  const [showCertification, setShowCertification] = useState(false);
+  const [showGallery, setShowGallery] = useState(false);
+  const [planetState, setPlanetState] = useState({
+    pollution: 80,
+    greenTiles: [],
+    plants: [],
+    animals: [],
+  });
+  const [certifications, setCertifications] = useState([]);
+  const canvasRef = useRef(null);
+  const animationRef = useRef(null);
+  const rotationRef = useRef({ x: 0, y: 0 });
+  const isDragging = useRef(false);
+  const lastMouse = useRef({ x: 0, y: 0 });
+
+  const shopItems = {
+    plants: [
+      { id: 'tulip', name: '튤립', price: 50, icon: '🌷', ecoPoints: 5 },
+      { id: 'tree', name: '나무', price: 100, icon: '🌳', ecoPoints: 10 },
+      { id: 'sunflower', name: '해바라기', price: 70, icon: '🌻', ecoPoints: 7 },
+      { id: 'cactus', name: '선인장', price: 40, icon: '🌵', ecoPoints: 4 }
+    ],
+    animals: [
+      { id: 'rabbit', name: '토끼', price: 150, icon: '🐰', ecoPoints: 15, requiredTiles: 3 },
+      { id: 'fox', name: '여우', price: 200, icon: '🦊', ecoPoints: 20, requiredTiles: 5 },
+      { id: 'deer', name: '사슴', price: 250, icon: '🦌', ecoPoints: 25, requiredTiles: 8 },
+      { id: 'panda', name: '판다', price: 500, icon: '🐼', ecoPoints: 50, requiredTiles: 15 },
+      { id: 'elephant', name: '코끼리', price: 400, icon: '🐘', ecoPoints: 40, requiredTiles: 12 }
+    ],
+    cleaning: [
+      { id: 'basic_clean', name: '기본 정화', price: 80, icon: '🌱', ecoPoints: 10, tiles: 1 },
+      { id: 'advanced_clean', name: '고급 정화', price: 150, icon: '🌿', ecoPoints: 15, tiles: 2 },
+      { id: 'super_clean', name: '슈퍼 정화', price: 250, icon: '🍀', ecoPoints: 25, tiles: 3 },
+      { id: 'mega_clean', name: '메가 정화', price: 400, icon: '🌳', ecoPoints: 40, tiles: 5 }
+    ]
+  };
+
+  const certificationCategories = [
+    '분리배출', '대중교통 이용', '일회용품 줄이기', '친환경 실험', '에너지 절약', '재활용'
+  ];
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    const container = canvas.parentElement;
+    canvas.width = container.clientWidth;
+    canvas.height = container.clientHeight;
+
+    const handleStart = (clientX, clientY) => {
+      isDragging.current = true;
+      lastMouse.current = { x: clientX, y: clientY };
+    };
+
+    const handleMove = (clientX, clientY) => {
+      if (!isDragging.current) return;
+      const dx = clientX - lastMouse.current.x;
+      const dy = clientY - lastMouse.current.y;
+      rotationRef.current.y += dx * 0.01;
+      rotationRef.current.x += dy * 0.01;
+      lastMouse.current = { x: clientX, y: clientY };
+    };
+
+    const handleEnd = () => {
+      isDragging.current = false;
+    };
+
+    const handleMouseDown = (e) => handleStart(e.clientX, e.clientY);
+    const handleMouseMove = (e) => handleMove(e.clientX, e.clientY);
+
+    const handleTouchStart = (e) => {
+      e.preventDefault();
+      const touch = e.touches[0];
+      handleStart(touch.clientX, touch.clientY);
+    };
+    const handleTouchMove = (e) => {
+      e.preventDefault();
+      const touch = e.touches[0];
+      handleMove(touch.clientX, touch.clientY);
+    };
+    const handleTouchEnd = (e) => {
+      e.preventDefault();
+      handleEnd();
+    };
+
+    canvas.addEventListener('mousedown', handleMouseDown);
+    canvas.addEventListener('mousemove', handleMouseMove);
+    canvas.addEventListener('mouseup', handleEnd);
+    canvas.addEventListener('mouseleave', handleEnd);
+    
+    canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+    canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+    canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+
+    const drawPlanet = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      ctx.fillStyle = '#1a1a2e';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      for (let i = 0; i < 150; i++) {
+        const x = Math.random() * canvas.width;
+        const y = Math.random() * canvas.height;
+        const size = Math.random() * 2;
+        ctx.fillStyle = `rgba(255, 255, 255, ${Math.random() * 0.5 + 0.3})`;
+        ctx.beginPath();
+        ctx.arc(x, y, size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      const radius = Math.min(canvas.width, canvas.height) * 0.3;
+
+      const gradient = ctx.createRadialGradient(
+        centerX - radius * 0.3, 
+        centerY - radius * 0.3, 
+        radius * 0.1,
+        centerX, 
+        centerY, 
+        radius
+      );
+      gradient.addColorStop(0, '#8B7355');
+      gradient.addColorStop(0.5, '#6B5344');
+      gradient.addColorStop(1, '#4A3933');
+      
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+      ctx.fill();
+
+      const latLines = 12;
+      const lonLines = 16;
+
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+      ctx.lineWidth = 1;
+
+      for (let i = 1; i < latLines; i++) {
+        const lat = (i / latLines - 0.5) * Math.PI;
+        ctx.beginPath();
+        let firstPoint = true;
+        
+        for (let j = 0; j <= 64; j++) {
+          const lon = (j / 64) * Math.PI * 2;
+          const y = Math.sin(lat) * radius;
+          const r = Math.cos(lat) * radius;
+          const x = Math.cos(lon) * r;
+          const z = Math.sin(lon) * r;
+          
+          const rotX = x * Math.cos(rotationRef.current.y) - z * Math.sin(rotationRef.current.y);
+          const rotZ = x * Math.sin(rotationRef.current.y) + z * Math.cos(rotationRef.current.y);
+          const rotY = y * Math.cos(rotationRef.current.x) - rotZ * Math.sin(rotationRef.current.x);
+          const finalZ = y * Math.sin(rotationRef.current.x) + rotZ * Math.cos(rotationRef.current.x);
+          
+          const screenX = centerX + rotX;
+          const screenY = centerY + rotY;
+          
+          if (finalZ > 0) {
+            if (firstPoint) {
+              ctx.moveTo(screenX, screenY);
+              firstPoint = false;
+            } else {
+              ctx.lineTo(screenX, screenY);
+            }
+          } else {
+            firstPoint = true;
+          }
+        }
+        ctx.stroke();
+      }
+
+      for (let i = 0; i < lonLines; i++) {
+        const lon = (i / lonLines) * Math.PI * 2;
+        ctx.beginPath();
+        let firstPoint = true;
+        
+        for (let j = 0; j <= 64; j++) {
+          const lat = (j / 64 - 0.5) * Math.PI;
+          const y = Math.sin(lat) * radius;
+          const r = Math.cos(lat) * radius;
+          const x = Math.cos(lon) * r;
+          const z = Math.sin(lon) * r;
+          
+          const rotX = x * Math.cos(rotationRef.current.y) - z * Math.sin(rotationRef.current.y);
+          const rotZ = x * Math.sin(rotationRef.current.y) + z * Math.cos(rotationRef.current.y);
+          const rotY = y * Math.cos(rotationRef.current.x) - rotZ * Math.sin(rotationRef.current.x);
+          const finalZ = y * Math.sin(rotationRef.current.x) + rotZ * Math.cos(rotationRef.current.x);
+          
+          const screenX = centerX + rotX;
+          const screenY = centerY + rotY;
+          
+          if (finalZ > 0) {
+            if (firstPoint) {
+              ctx.moveTo(screenX, screenY);
+              firstPoint = false;
+            } else {
+              ctx.lineTo(screenX, screenY);
+            }
+          } else {
+            firstPoint = true;
+          }
+        }
+        ctx.stroke();
+      }
+
+      planetState.greenTiles.forEach(tile => {
+        const lat = tile.lat * Math.PI / 180;
+        const lon = tile.lon * Math.PI / 180;
+        
+        const y = Math.sin(lat) * radius;
+        const r = Math.cos(lat) * radius;
+        const x = Math.cos(lon) * r;
+        const z = Math.sin(lon) * r;
+        
+        const rotX = x * Math.cos(rotationRef.current.y) - z * Math.sin(rotationRef.current.y);
+        const rotZ = x * Math.sin(rotationRef.current.y) + z * Math.cos(rotationRef.current.y);
+        const rotY = y * Math.cos(rotationRef.current.x) - rotZ * Math.sin(rotationRef.current.x);
+        const finalZ = y * Math.sin(rotationRef.current.x) + rotZ * Math.cos(rotationRef.current.x);
+        
+        if (finalZ > 0) {
+          const screenX = centerX + rotX;
+          const screenY = centerY + rotY;
+          
+          ctx.fillStyle = 'rgba(106, 168, 79, 0.8)';
+          ctx.beginPath();
+          ctx.arc(screenX, screenY, radius * 0.08, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      });
+
+      planetState.animals.forEach(animal => {
+        if (!animal.position) return;
+        
+        const lat = animal.position.lat * Math.PI / 180;
+        const lon = animal.position.lon * Math.PI / 180;
+        
+        const y = Math.sin(lat) * radius;
+        const r = Math.cos(lat) * radius;
+        const x = Math.cos(lon) * r;
+        const z = Math.sin(lon) * r;
+        
+        const rotX = x * Math.cos(rotationRef.current.y) - z * Math.sin(rotationRef.current.y);
+        const rotZ = x * Math.sin(rotationRef.current.y) + z * Math.cos(rotationRef.current.y);
+        const rotY = y * Math.cos(rotationRef.current.x) - rotZ * Math.sin(rotationRef.current.x);
+        const finalZ = y * Math.sin(rotationRef.current.x) + rotZ * Math.cos(rotationRef.current.x);
+        
+        if (finalZ > 0) {
+          const screenX = centerX + rotX;
+          const screenY = centerY + rotY;
+          
+          ctx.font = '28px Arial';
+          ctx.fillText(animal.icon, screenX - 14, screenY + 10);
+        }
+      });
+
+      animationRef.current = requestAnimationFrame(drawPlanet);
+    };
+
+    drawPlanet();
+
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+      canvas.removeEventListener('mousedown', handleMouseDown);
+      canvas.removeEventListener('mousemove', handleMouseMove);
+      canvas.removeEventListener('mouseup', handleEnd);
+      canvas.removeEventListener('mouseleave', handleEnd);
+      canvas.removeEventListener('touchstart', handleTouchStart);
+      canvas.removeEventListener('touchmove', handleTouchMove);
+      canvas.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [planetState]);
+
+  const buyItem = (item, category) => {
+    if (points < item.price) {
+      alert('포인트가 부족합니다!');
+      return;
+    }
+
+    if (category === 'animals' && planetState.greenTiles.length < item.requiredTiles) {
+      alert(`초록색 구역이 ${item.requiredTiles}개 이상 필요합니다!`);
+      return;
+    }
+
+    setPoints(prev => prev - item.price);
+    setEcoScore(prev => prev + item.ecoPoints);
+
+    if (category === 'plants') {
+      setPlanetState(prev => ({
+        ...prev,
+        plants: [...prev.plants, item]
+      }));
+      alert(`${item.name}을(를) 구매했습니다!`);
+    } else if (category === 'animals') {
+      const randomTile = planetState.greenTiles[Math.floor(Math.random() * planetState.greenTiles.length)];
+      setPlanetState(prev => ({
+        ...prev,
+        animals: [...prev.animals, { ...item, position: randomTile }]
+      }));
+      alert(`${item.name}을(를) 구매했습니다!`);
+    } else if (category === 'cleaning') {
+      const newTiles = [];
+      for (let i = 0; i < item.tiles; i++) {
+        newTiles.push({
+          lat: (Math.random() - 0.5) * 160,
+          lon: Math.random() * 360 - 180
+        });
+      }
+      setPlanetState(prev => ({
+        ...prev,
+        greenTiles: [...prev.greenTiles, ...newTiles],
+        pollution: Math.max(0, prev.pollution - 10)
+      }));
+      alert(`${item.name}을(를) 구매했습니다! ${item.tiles}개의 초록 구역이 생성되었습니다.`);
+    }
+  };
+
+  const submitCertification = (category, imageData) => {
+    const newCert = {
+      id: Date.now(),
+      category,
+      date: new Date().toISOString().split('T')[0],
+      image: imageData,
+      points: 100
+    };
+
+    setCertifications(prev => [...prev, newCert]);
+    setPoints(prev => prev + 100);
+    setEcoScore(prev => prev + 5);
+    alert('인증 완료! 100포인트를 획득했습니다!');
+    setShowCertification(false);
+  };
+
+  const CertificationModal = () => {
+    const [selectedCategory, setSelectedCategory] = useState('');
+    const [previewImage, setPreviewImage] = useState(null);
+    const fileInputRef = useRef(null);
+
+    const handleImageUpload = (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setPreviewImage(reader.result);
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4 overflow-y-auto">
+        <div className="bg-gradient-to-br from-amber-100 to-orange-100 rounded-3xl p-8 max-w-md w-full border-4 border-amber-600 my-8 relative">
+          <button
+            onClick={() => setShowCertification(false)}
+            className="absolute top-4 right-4 bg-white rounded-full p-2 hover:bg-gray-100 transition"
+          >
+            <X size={24} className="text-gray-700" />
+          </button>
+          
+          <h2 className="text-3xl font-bold text-amber-900 mb-6 flex items-center gap-2">
+            <Camera className="text-amber-700" /> 환경 실천 인증
+          </h2>
+          
+          <div className="mb-4">
+            <label className="block text-amber-900 mb-2 font-semibold">카테고리 선택</label>
+            <select 
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="w-full p-3 rounded-xl bg-white text-amber-900 font-semibold border-2 border-amber-300"
+            >
+              <option value="">선택하세요</option>
+              {certificationCategories.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="mb-6">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              className="hidden"
+            />
+            <button
+              onClick={() => fileInputRef.current.click()}
+              className="w-full p-4 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold transition"
+            >
+              📸 사진 업로드
+            </button>
+            {previewImage && (
+              <img src={previewImage} alt="Preview" className="mt-4 w-full h-48 object-cover rounded-xl border-2 border-amber-300" />
+            )}
+          </div>
+
+          <button
+            onClick={() => {
+              if (!selectedCategory || !previewImage) {
+                alert('카테고리와 사진을 모두 선택해주세요!');
+                return;
+              }
+              submitCertification(selectedCategory, previewImage);
+            }}
+            className="w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold transition"
+          >
+            ✅ 인증하기
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const GalleryModal = () => {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4 overflow-y-auto">
+        <div className="bg-gradient-to-br from-amber-100 to-orange-100 rounded-3xl p-8 max-w-2xl w-full border-4 border-amber-600 my-8 relative">
+          <button
+            onClick={() => setShowGallery(false)}
+            className="absolute top-4 right-4 bg-white rounded-full p-2 hover:bg-gray-100 transition"
+          >
+            <X size={24} className="text-gray-700" />
+          </button>
+          
+          <h2 className="text-3xl font-bold text-amber-900 mb-6 flex items-center gap-2">
+            <Sparkles className="text-amber-700" /> 인증 갤러리
+          </h2>
+          
+          {certifications.length === 0 ? (
+            <p className="text-amber-900 text-center py-8 font-semibold">아직 인증 내역이 없습니다.</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {certifications.map(cert => (
+                <div key={cert.id} className="bg-white rounded-xl p-4 shadow-lg border-2 border-amber-300">
+                  <img src={cert.image} alt="Certification" className="w-full h-40 object-cover rounded-lg mb-3" />
+                  <p className="text-amber-900 font-bold">{cert.category}</p>
+                  <p className="text-amber-700 text-sm">{cert.date}</p>
+                  <p className="text-green-600 font-bold">+{cert.points}P</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const ShopModal = () => {
+    const [selectedTab, setSelectedTab] = useState('cleaning');
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4 overflow-y-auto">
+        <div className="bg-gradient-to-br from-amber-100 to-orange-100 rounded-3xl p-8 max-w-2xl w-full border-4 border-amber-600 my-8 relative max-h-[90vh] overflow-y-auto">
+          <div className="sticky top-0 bg-gradient-to-br from-amber-100 to-orange-100 pb-4 mb-4 z-20">
+            <button
+              onClick={() => setShowShop(false)}
+              className="absolute top-0 right-0 bg-white rounded-full p-2 hover:bg-gray-100 transition shadow-lg"
+            >
+              <X size={24} className="text-gray-700" />
+            </button>
+            
+            <h2 className="text-3xl font-bold text-amber-900 mb-6 flex items-center gap-2 pr-14">
+              <ShoppingBag className="text-amber-700" /> 상점
+            </h2>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => setSelectedTab('cleaning')}
+                className={`flex-1 py-3 rounded-xl font-bold transition ${
+                  selectedTab === 'cleaning'
+                    ? 'bg-green-600 text-white'
+                    : 'bg-white text-amber-900 hover:bg-amber-50'
+                }`}
+              >
+                🌱 환경 정화
+              </button>
+              <button
+                onClick={() => setSelectedTab('plants')}
+                className={`flex-1 py-3 rounded-xl font-bold transition ${
+                  selectedTab === 'plants'
+                    ? 'bg-amber-600 text-white'
+                    : 'bg-white text-amber-900 hover:bg-amber-50'
+                }`}
+              >
+                🌷 식물 꾸미기
+              </button>
+              <button
+                onClick={() => setSelectedTab('animals')}
+                className={`flex-1 py-3 rounded-xl font-bold transition ${
+                  selectedTab === 'animals'
+                    ? 'bg-rose-600 text-white'
+                    : 'bg-white text-amber-900 hover:bg-amber-50'
+                }`}
+              >
+                🦊 동물 이주
+              </button>
+            </div>
+          </div>
+
+          <div className="flex gap-2 mb-6">
+            <button
+              onClick={() => setSelectedTab('cleaning')}
+              className={`flex-1 py-3 rounded-xl font-bold transition ${
+                selectedTab === 'cleaning'
+                  ? 'bg-green-600 text-white'
+                  : 'bg-white text-amber-900 hover:bg-amber-50'
+              }`}
+            >
+              🌱 환경 정화
+            </button>
+            <button
+              onClick={() => setSelectedTab('plants')}
+              className={`flex-1 py-3 rounded-xl font-bold transition ${
+                selectedTab === 'plants'
+                  ? 'bg-amber-600 text-white'
+                  : 'bg-white text-amber-900 hover:bg-amber-50'
+              }`}
+            >
+              🌷 식물 꾸미기
+            </button>
+            <button
+              onClick={() => setSelectedTab('animals')}
+              className={`flex-1 py-3 rounded-xl font-bold transition ${
+                selectedTab === 'animals'
+                  ? 'bg-rose-600 text-white'
+                  : 'bg-white text-amber-900 hover:bg-amber-50'
+              }`}
+            >
+              🦊 동물 이주
+            </button>
+          </div>
+
+          {selectedTab === 'cleaning' && (
+            <div className="mb-6">
+              <h3 className="text-2xl font-bold text-green-700 mb-3 flex items-center gap-2">
+                <Droplet /> 환경 정화 아이템
+              </h3>
+              <p className="text-amber-800 text-sm mb-4 font-semibold">
+                정화 아이템을 구매하면 행성에 초록색 구역이 생성됩니다!
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                {shopItems.cleaning.map(item => (
+                  <div key={item.id} className="bg-white p-4 rounded-xl shadow-md border-2 border-green-300">
+                    <div className="text-4xl mb-2">{item.icon}</div>
+                    <p className="text-amber-900 font-bold">{item.name}</p>
+                    <p className="text-amber-700 font-semibold">{item.price}P</p>
+                    <p className="text-green-600 text-xs font-semibold">+{item.tiles}개 초록구역</p>
+                    <button
+                      onClick={() => buyItem(item, 'cleaning')}
+                      disabled={points < item.price}
+                      className={`w-full mt-2 py-2 rounded-lg font-bold transition text-sm ${
+                        points >= item.price
+                          ? 'bg-green-600 hover:bg-green-700 text-white'
+                          : 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                      }`}
+                    >
+                      {points >= item.price ? '구매' : '포인트 부족'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {selectedTab === 'plants' && (
+            <div className="mb-6">
+              <h3 className="text-2xl font-bold text-amber-800 mb-3 flex items-center gap-2">
+                <Sprout /> 식물 꾸미기
+              </h3>
+              <div className="grid grid-cols-2 gap-3">
+                {shopItems.plants.map(item => (
+                  <div key={item.id} className="bg-white p-4 rounded-xl shadow-md border-2 border-amber-300">
+                    <div className="text-4xl mb-2">{item.icon}</div>
+                    <p className="text-amber-900 font-bold">{item.name}</p>
+                    <p className="text-amber-700 font-semibold">{item.price}P</p>
+                    <button
+                      onClick={() => buyItem(item, 'plants')}
+                      disabled={points < item.price}
+                      className={`w-full mt-2 py-2 rounded-lg font-bold transition text-sm ${
+                        points >= item.price
+                          ? 'bg-amber-600 hover:bg-amber-700 text-white'
+                          : 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                      }`}
+                    >
+                      {points >= item.price ? '구매' : '포인트 부족'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {selectedTab === 'animals' && (
+            <div className="mb-6">
+              <h3 className="text-2xl font-bold text-rose-700 mb-3">🦊 동물 이주</h3>
+              <p className="text-amber-800 text-sm mb-3 font-semibold">
+                초록색 구역이 충분해야 동물을 이주시킬 수 있습니다!
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                {shopItems.animals.map(item => {
+                  const canBuy = points >= item.price && planetState.greenTiles.length >= item.requiredTiles;
+                  return (
+                    <div key={item.id} className="bg-white p-4 rounded-xl shadow-md border-2 border-rose-300">
+                      <div className="text-4xl mb-2">{item.icon}</div>
+                      <p className="text-amber-900 font-bold">{item.name}</p>
+                      <p className="text-amber-700 font-semibold">{item.price}P</p>
+                      <p className="text-green-600 text-xs font-semibold">초록구역 {item.requiredTiles}개+</p>
+                      <button
+                        onClick={() => buyItem(item, 'animals')}
+                        disabled={!canBuy}
+                        className={`w-full mt-2 py-2 rounded-lg font-bold transition text-sm ${
+                          canBuy
+                            ? 'bg-rose-600 hover:bg-rose-700 text-white'
+                            : 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                        }`}
+                      >
+                        {canBuy ? '구매' : planetState.greenTiles.length < item.requiredTiles ? '잠금됨' : '포인트 부족'}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="h-screen w-screen overflow-hidden bg-gradient-to-b from-amber-50 via-orange-50 to-rose-50 relative">
+      <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10">
+        <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-700 to-orange-600">
+          🌍 BioSynth Planet
+        </h1>
+      </div>
+
+      <div className="absolute top-20 right-6 z-10 space-y-3">
+        <div className="bg-gradient-to-r from-amber-500 to-orange-500 p-4 rounded-xl shadow-lg min-w-[180px]">
+          <div className="flex items-center gap-2 mb-1">
+            <Star className="text-white" size={20} />
+            <span className="text-white font-bold">포인트</span>
+          </div>
+          <p className="text-3xl font-bold text-white">{points}P</p>
+        </div>
+        <div className="bg-gradient-to-r from-green-600 to-emerald-600 p-4 rounded-xl shadow-lg min-w-[180px]">
+          <div className="flex items-center gap-2 mb-1">
+            <Leaf className="text-white" size={20} />
+            <span className="text-white font-bold">환경 점수</span>
+          </div>
+          <p className="text-3xl font-bold text-white">{ecoScore}</p>
+        </div>
+        <div className="bg-gradient-to-r from-blue-500 to-sky-500 p-4 rounded-xl shadow-lg min-w-[180px]">
+          <div className="flex items-center gap-2 mb-1">
+            <Droplet className="text-white" size={20} />
+            <span className="text-white font-bold">정화 상태</span>
+          </div>
+          <p className="text-3xl font-bold text-white">{100 - planetState.pollution}%</p>
+        </div>
+      </div>
+
+      <div className="absolute inset-0 flex items-center justify-center">
+        <canvas 
+          ref={canvasRef}
+          className="w-full h-full cursor-grab active:cursor-grabbing"
+        />
+      </div>
+
+      <div className="absolute bottom-6 left-6 z-10 space-y-3">
+        <button
+          onClick={() => setShowShop(true)}
+          className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white px-6 py-4 rounded-2xl font-bold transition transform hover:scale-105 shadow-lg flex items-center gap-3 min-w-[200px]"
+        >
+          <ShoppingBag size={24} />
+          상점 열기
+        </button>
+        <button
+          onClick={() => setShowCertification(true)}
+          className="bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white px-6 py-4 rounded-2xl font-bold transition transform hover:scale-105 shadow-lg flex items-center gap-3 min-w-[200px]"
+        >
+          <Camera size={24} />
+          실천 인증
+        </button>
+        <button
+          onClick={() => setShowGallery(true)}
+          className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 py-4 rounded-2xl font-bold transition transform hover:scale-105 shadow-lg flex items-center gap-3 min-w-[200px]"
+        >
+          <Sparkles size={24} />
+          인증 갤러리
+        </button>
+      </div>
+
+      <div className="absolute top-20 left-6 bg-white bg-opacity-90 text-amber-900 px-4 py-3 rounded-xl backdrop-blur z-10 shadow-lg border-2 border-amber-300">
+        <p className="text-sm font-bold">🌱 식물: {planetState.plants.length}개</p>
+        <p className="text-sm font-bold">🦊 동물: {planetState.animals.length}마리</p>
+        <p className="text-sm font-bold">🟢 초록구역: {planetState.greenTiles.length}개</p>
+      </div>
+
+      {showShop && <ShopModal />}
+      {showCertification && <CertificationModal />}
+      {showGallery && <GalleryModal />}
+    </div>
+  );
+};
+
+export default BioSynthPlanet;
